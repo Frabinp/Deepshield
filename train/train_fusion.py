@@ -6,7 +6,6 @@ import json
 import os
 import sys
 from collections import Counter
-from contextlib import nullcontext
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -17,7 +16,7 @@ configure_wandb_environment()
 import torch
 import torch.nn as nn
 from sklearn.metrics import roc_auc_score
-from torch.amp import GradScaler, autocast
+from torch.amp import GradScaler
 from torch.utils.data import DataLoader
 
 from data.preprocessing.dataset import (
@@ -32,7 +31,7 @@ from models.checkpoint_utils import load_module_checkpoint
 from models.fusion_model import FusionModel
 from models.image_model import ImageDetector
 from models.video_model import VideoDetector
-from train.training_utils import build_balanced_sampler, compute_best_f1_threshold, seed_everything
+from train.training_utils import amp_context, build_balanced_sampler, compute_best_f1_threshold, seed_everything
 
 
 BATCH_SIZE = 4
@@ -40,6 +39,7 @@ EPOCHS = int(os.environ.get("DEEPSHIELD_EPOCHS", "25"))
 LR = 1e-4
 WEIGHT_DECAY = 1e-4
 GRAD_ACCUM = 4
+MAX_GRAD_NORM = 1.0
 PATIENCE = 7
 CM_LOSS_WEIGHT = 0.1
 CHECKPOINT = os.environ.get("DEEPSHIELD_CHECKPOINT", "checkpoints/best_fusion.pt")
@@ -115,14 +115,14 @@ train_loader = DataLoader(
     train_ds,
     batch_size=BATCH_SIZE,
     sampler=train_sampler,
-    num_workers=0,
+    num_workers=2,
     pin_memory=USE_AMP,
 )
 val_loader = DataLoader(
     val_ds,
     batch_size=BATCH_SIZE,
     shuffle=False,
-    num_workers=0,
+    num_workers=2,
     pin_memory=USE_AMP,
 )
 
@@ -145,15 +145,14 @@ optimizer = torch.optim.AdamW(
     lr=LR,
     weight_decay=WEIGHT_DECAY,
 )
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
+warmup_epochs = min(3, EPOCHS)
+warmup_scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=warmup_epochs)
+cosine_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(EPOCHS - warmup_epochs, 1))
+scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, schedulers=[warmup_scheduler, cosine_scheduler], milestones=[warmup_epochs])
 criterion = nn.BCEWithLogitsLoss()
 scaler = GradScaler(DEVICE.type, enabled=USE_AMP)
 
 
-def amp_context():
-    if USE_AMP:
-        return autocast(device_type="cuda", enabled=True)
-    return nullcontext()
 
 
 def extract_features(batch):
@@ -161,7 +160,7 @@ def extract_features(batch):
     clips = batch["frames"].to(DEVICE)
 
     with torch.no_grad():
-        with amp_context():
+        with amp_context(DEVICE):
             image_feat, _ = image_model(images)
             video_feat, _ = video_model(clips)
             if "audio" in ACTIVE_MODALITIES:
@@ -184,7 +183,7 @@ for epoch in range(1, EPOCHS + 1):
         labels = batch["label"].to(DEVICE)
         image_feat, video_feat, audio_feat = extract_features(batch)
 
-        with amp_context():
+        with amp_context(DEVICE):
             out = fusion_model(image_feat, video_feat, audio_feat, labels=labels)
             logits = out["logit"].view(-1)
             cls_loss = criterion(logits, labels.view(-1))
@@ -195,6 +194,8 @@ for epoch in range(1, EPOCHS + 1):
         train_loss += total_loss.item()
 
         if (step + 1) % GRAD_ACCUM == 0 or (step + 1) == len(train_loader):
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(fusion_model.parameters(), MAX_GRAD_NORM)
             scaler.step(optimizer)
             scaler.update()
             optimizer.zero_grad()
@@ -211,7 +212,7 @@ for epoch in range(1, EPOCHS + 1):
             labels = batch["label"].to(DEVICE)
             image_feat, video_feat, audio_feat = extract_features(batch)
 
-            with amp_context():
+            with amp_context(DEVICE):
                 out = fusion_model(image_feat, video_feat, audio_feat, labels=labels)
                 logits = out["logit"].view(-1)
                 cls_loss = criterion(logits, labels.view(-1))

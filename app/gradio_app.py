@@ -36,6 +36,12 @@ from models.fusion_model import FusionModel
 from models.image_model import ImageDetector
 from models.video_model import VideoDetector
 
+try:
+    from explain.gradcam import GradCAM, overlay_heatmap, TRANSFORM as GRADCAM_TRANSFORM
+    GRADCAM_AVAILABLE = True
+except ImportError:
+    GRADCAM_AVAILABLE = False
+
 
 try:
     from facenet_pytorch import MTCNN as _MTCNN
@@ -275,11 +281,28 @@ def predict_image_only(image):
     pil_img, face_note = crop_face(pil_img)
     probability, _ = predict_image(pil_img)
     label, confidence = format_result(probability, DECISION_THRESHOLDS["image"])
-    return f"{label}  (confidence: {confidence:.1%}) [{face_note}]", {
+
+    # Grad-CAM overlay
+    gradcam_overlay = None
+    if GRADCAM_AVAILABLE:
+        try:
+            target_layer = image_model.backbone.conv_head
+            cam = GradCAM(image_model, target_layer)
+            input_tensor = TRANSFORM(pil_img).unsqueeze(0).to(DEVICE)
+            target_class = 1 if probability > DECISION_THRESHOLDS["image"] else 0
+            heatmap = cam(input_tensor, target_class=target_class)
+            resized_img = pil_img.resize((224, 224))
+            gradcam_overlay = overlay_heatmap(resized_img, heatmap)
+        except Exception:
+            pass
+
+    result_text = f"{label}  (confidence: {confidence:.1%}) [{face_note}]"
+    scores = {
         "Fake": float(probability),
         "Real": float(1 - probability),
         "Threshold": float(DECISION_THRESHOLDS["image"]),
     }
+    return result_text, scores, gradcam_overlay
 
 
 def predict_video_full(video):
@@ -333,12 +356,14 @@ def predict_video_full(video):
             fusion_audio_features,
         )
     fusion_prob = torch.sigmoid(fusion_out["logit"]).item()
+    fusion_uncertainty = fusion_out["uncertainty"].item()
 
     label, confidence = format_result(video_prob, DECISION_THRESHOLDS["video"])
     details = {
         "Video (Fake)": round(video_prob, 3),
         "Image (Fake)": round(image_prob, 3),
         "Fusion (Fake)": round(fusion_prob, 3),
+        "Fusion Uncertainty": round(fusion_uncertainty, 4),
         "Video Threshold": round(DECISION_THRESHOLDS["video"], 3),
         "Image Threshold": round(DECISION_THRESHOLDS["image"], 3),
         "Fusion Threshold": round(DECISION_THRESHOLDS["fusion"], 3),

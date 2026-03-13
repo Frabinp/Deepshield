@@ -5,7 +5,6 @@ train_video.py - DeepShield video model training on grouped clip splits.
 import os
 import sys
 from collections import Counter
-from contextlib import nullcontext
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -16,12 +15,12 @@ configure_wandb_environment()
 import torch
 import torch.nn as nn
 from sklearn.metrics import roc_auc_score
-from torch.amp import GradScaler, autocast
+from torch.amp import GradScaler
 from torch.utils.data import DataLoader
 
 from data.preprocessing.dataset import VideoDataset, VIDEO_TRAIN_TRANSFORM, VIDEO_VAL_TRANSFORM
 from models.video_model import VideoDetector
-from train.training_utils import build_balanced_sampler, compute_best_f1_threshold, seed_everything
+from train.training_utils import amp_context, build_balanced_sampler, compute_best_f1_threshold, seed_everything
 
 
 BATCH_SIZE = 4
@@ -29,6 +28,7 @@ EPOCHS = int(os.environ.get("DEEPSHIELD_EPOCHS", "30"))
 LR = 1e-4
 WEIGHT_DECAY = 1e-4
 GRAD_ACCUM = 8
+MAX_GRAD_NORM = 1.0
 PATIENCE = 7
 CHECKPOINT = os.environ.get("DEEPSHIELD_CHECKPOINT", "checkpoints/best_video.pt")
 SEED = int(os.environ.get("DEEPSHIELD_SEED", "42"))
@@ -38,11 +38,6 @@ USE_AMP = DEVICE.type == "cuda"
 os.makedirs("checkpoints", exist_ok=True)
 seed_everything(SEED)
 
-
-def amp_context():
-    if USE_AMP:
-        return autocast(device_type="cuda", enabled=True)
-    return nullcontext()
 
 
 print("=" * 60)
@@ -66,21 +61,24 @@ train_loader = DataLoader(
     train_ds,
     batch_size=BATCH_SIZE,
     sampler=train_sampler,
-    num_workers=0,
+    num_workers=2,
     pin_memory=USE_AMP,
 )
 val_loader = DataLoader(
     val_ds,
     batch_size=BATCH_SIZE,
     shuffle=False,
-    num_workers=0,
+    num_workers=2,
     pin_memory=USE_AMP,
 )
 
 model = VideoDetector().to(DEVICE)
 print("  Frame init    : default timm weights")
 optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
+warmup_epochs = min(3, EPOCHS)
+warmup_scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=warmup_epochs)
+cosine_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(EPOCHS - warmup_epochs, 1))
+scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, schedulers=[warmup_scheduler, cosine_scheduler], milestones=[warmup_epochs])
 criterion = nn.BCEWithLogitsLoss()
 scaler = GradScaler(DEVICE.type, enabled=USE_AMP)
 
@@ -96,14 +94,16 @@ for epoch in range(1, EPOCHS + 1):
         clips = clips.to(DEVICE)
         labels = labels.to(DEVICE)
 
-        with amp_context():
+        with amp_context(DEVICE):
             _, logits = model(clips)
-            loss = criterion(logits.squeeze(), labels) / GRAD_ACCUM
+            loss = criterion(logits.view(-1), labels.view(-1)) / GRAD_ACCUM
 
         scaler.scale(loss).backward()
         train_loss += loss.item() * GRAD_ACCUM
 
         if (step + 1) % GRAD_ACCUM == 0 or (step + 1) == len(train_loader):
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), MAX_GRAD_NORM)
             scaler.step(optimizer)
             scaler.update()
             optimizer.zero_grad()
@@ -120,12 +120,12 @@ for epoch in range(1, EPOCHS + 1):
             clips = clips.to(DEVICE)
             labels = labels.to(DEVICE)
 
-            with amp_context():
+            with amp_context(DEVICE):
                 _, logits = model(clips)
-                loss = criterion(logits.squeeze(), labels)
+                loss = criterion(logits.view(-1), labels.view(-1))
 
             val_loss += loss.item()
-            probs = torch.sigmoid(logits.squeeze()).cpu().numpy()
+            probs = torch.sigmoid(logits.view(-1)).cpu().numpy()
             all_probs.extend(probs.tolist() if probs.ndim > 0 else [probs.item()])
             all_labels.extend(labels.cpu().numpy().tolist())
 

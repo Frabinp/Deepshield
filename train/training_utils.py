@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from collections import Counter
+from contextlib import nullcontext
 import random
 
 import numpy as np
 import torch
 from sklearn.metrics import precision_recall_curve
+from torch.amp import autocast
 from torch.utils.data import WeightedRandomSampler
 
 
@@ -56,3 +58,10 @@ def seed_everything(seed: int) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+
+def amp_context(device: torch.device):
+    """Returns an AMP autocast context manager, or a no-op on CPU."""
+    if device.type == "cuda":
+        return autocast(device_type="cuda", enabled=True)
+    return nullcontext()

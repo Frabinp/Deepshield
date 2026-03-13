@@ -39,7 +39,7 @@ def load_module_checkpoint(
     state_key: str | None = None,
     strict: bool = True,
 ) -> object:
-    checkpoint = torch.load(checkpoint_path, map_location=map_location)
+    checkpoint = torch.load(checkpoint_path, map_location=map_location, weights_only=False)
     module.load_state_dict(extract_state_dict(checkpoint, state_key=state_key), strict=strict)
     return checkpoint
 
@@ -53,7 +53,7 @@ def load_fusion_models(
     map_location: str | torch.device = "cpu",
     strict: bool = True,
 ) -> object:
-    checkpoint = torch.load(fusion_checkpoint_path, map_location=map_location)
+    checkpoint = torch.load(fusion_checkpoint_path, map_location=map_location, weights_only=False)
 
     if isinstance(checkpoint, dict) and "fusion_model_state" in checkpoint:
         fusion_model.load_state_dict(

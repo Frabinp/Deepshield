@@ -6,7 +6,8 @@ from typing import Tuple
 
 class VideoDetector(nn.Module):
     """
-    X3D-XS based video deepfake detector.
+    EfficientNet-B0 + LSTM video deepfake detector.
+    Per-frame CNN features are fed into a 2-layer LSTM for temporal modeling.
     Input  : (B, 16, 3, 224, 224) video clip (16 frames)
     Output : feature vector (B, 512) + logit (B, 1)
     """

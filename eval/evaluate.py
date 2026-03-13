@@ -70,11 +70,19 @@ class FaceDataset(Dataset):
         real = sorted((FACES_DIR / "real").glob("*.jpg"))
         fake = sorted((FACES_DIR / "fake").glob("*.jpg"))
         samples = [(path, 0) for path in real] + [(path, 1) for path in fake]
-        rng = np.random.default_rng(seed)
-        indices = rng.permutation(len(samples))
-        val_count = int(len(samples) * val_ratio)
-        indices = indices[val_count:] if split == "train" else indices[:val_count]
-        self.samples = [samples[index] for index in indices]
+
+        # Use grouped splits to prevent data leakage:
+        # face crops from the same source video stay in the same split
+        from data.preprocessing.dataset import _split_samples
+
+        self.samples = _split_samples(
+            samples,
+            split=split,
+            val_ratio=val_ratio,
+            seed=seed,
+            group_key_fn=lambda s: f"{s[1]}:{processed_sample_id_from_stem(s[0].stem)}",
+            stratify_fn=lambda s: s[1],
+        )
 
     def __len__(self):
         return len(self.samples)
@@ -129,13 +137,7 @@ def compute_eer(labels, scores):
     return float((fpr[index] + fnr[index]) / 2)
 
 
-def scalarize(values):
-    if isinstance(values, torch.Tensor):
-        values = values.detach().cpu().numpy()
-    values = np.asarray(values)
-    if values.ndim == 0:
-        return [float(values.item())]
-    return values.astype(float).reshape(-1).tolist()
+from train.training_utils import scalarize
 
 
 def metric_or_none(function, labels, probs):

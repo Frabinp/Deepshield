@@ -6,8 +6,11 @@ __pycache__/
 .tmp/
 
 checkpoints/
-data/
+data/processed/
+data/raw/
 
 *.pt
 *.pth
 *.ckpt
+
+eval/results/
