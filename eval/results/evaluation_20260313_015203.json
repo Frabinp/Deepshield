@@ -1,0 +1,156 @@
+{
+  "generated_at": "2026-03-13T01:52:03",
+  "device": "cuda",
+  "manifest_path": "data\\processed\\manifests\\faceforensics_multimodal.json",
+  "results": {
+    "image": {
+      "model": "IMAGE MODEL",
+      "samples": 1600,
+      "positives": 1200,
+      "negatives": 400,
+      "auc": 0.6154395833333333,
+      "pr_auc": 0.7916266828667877,
+      "eer": 0.3979166666666667,
+      "threshold_0_50": {
+        "threshold": 0.5,
+        "accuracy": 0.573125,
+        "precision": 0.8148599269183922,
+        "recall": 0.5575,
+        "f1": 0.6620484908461158,
+        "confusion_matrix": {
+          "tn": 248,
+          "fp": 152,
+          "fn": 531,
+          "tp": 669
+        }
+      },
+      "best_f1_threshold": 0.21686039865016937,
+      "best_f1": {
+        "threshold": 0.21686039865016937,
+        "accuracy": 0.758125,
+        "precision": 0.7567909033480733,
+        "recall": 0.9983333333333333,
+        "f1": 0.8609414301113906,
+        "confusion_matrix": {
+          "tn": 15,
+          "fp": 385,
+          "fn": 2,
+          "tp": 1198
+        }
+      }
+    },
+    "audio": {
+      "model": "AUDIO MODEL",
+      "samples": 4000,
+      "positives": 2000,
+      "negatives": 2000,
+      "auc": 0.93393375,
+      "pr_auc": 0.9528455459914245,
+      "eer": 0.13424999999999998,
+      "threshold_0_50": {
+        "threshold": 0.5,
+        "accuracy": 0.84175,
+        "precision": 0.9970909090909091,
+        "recall": 0.6855,
+        "f1": 0.8124444444444445,
+        "confusion_matrix": {
+          "tn": 1996,
+          "fp": 4,
+          "fn": 629,
+          "tp": 1371
+        }
+      },
+      "best_f1_threshold": 0.015477039851248264,
+      "best_f1": {
+        "threshold": 0.015477039851248264,
+        "accuracy": 0.88725,
+        "precision": 0.960190136660725,
+        "recall": 0.808,
+        "f1": 0.8775454792288895,
+        "confusion_matrix": {
+          "tn": 1933,
+          "fp": 67,
+          "fn": 384,
+          "tp": 1616
+        }
+      },
+      "dataset_split": "eval"
+    },
+    "video": {
+      "model": "VIDEO MODEL",
+      "samples": 160,
+      "positives": 120,
+      "negatives": 40,
+      "auc": 0.6658333333333334,
+      "pr_auc": 0.8234090478990486,
+      "eer": 0.39166666666666666,
+      "threshold_0_50": {
+        "threshold": 0.5,
+        "accuracy": 0.6375,
+        "precision": 0.8369565217391305,
+        "recall": 0.6416666666666667,
+        "f1": 0.7264150943396227,
+        "confusion_matrix": {
+          "tn": 25,
+          "fp": 15,
+          "fn": 43,
+          "tp": 77
+        }
+      },
+      "best_f1_threshold": 0.42847302556037903,
+      "best_f1": {
+        "threshold": 0.42847302556037903,
+        "accuracy": 0.78125,
+        "precision": 0.7891156462585034,
+        "recall": 0.9666666666666667,
+        "f1": 0.8689138576779026,
+        "confusion_matrix": {
+          "tn": 9,
+          "fp": 31,
+          "fn": 4,
+          "tp": 116
+        }
+      }
+    },
+    "fusion": {
+      "model": "FUSION MODEL",
+      "samples": 160,
+      "positives": 120,
+      "negatives": 40,
+      "auc": 0.6383333333333332,
+      "pr_auc": 0.7856688368028403,
+      "eer": 0.42083333333333334,
+      "threshold_0_50": {
+        "threshold": 0.5,
+        "accuracy": 0.65,
+        "precision": 0.8404255319148937,
+        "recall": 0.6583333333333333,
+        "f1": 0.7383177570093459,
+        "confusion_matrix": {
+          "tn": 25,
+          "fp": 15,
+          "fn": 41,
+          "tp": 79
+        }
+      },
+      "best_f1_threshold": 0.25846877694129944,
+      "best_f1": {
+        "threshold": 0.25846877694129944,
+        "accuracy": 0.80625,
+        "precision": 0.8296296296296296,
+        "recall": 0.9333333333333333,
+        "f1": 0.8784313725490196,
+        "confusion_matrix": {
+          "tn": 17,
+          "fp": 23,
+          "fn": 8,
+          "tp": 112
+        }
+      },
+      "active_modalities": [
+        "image",
+        "video"
+      ]
+    }
+  }
+}

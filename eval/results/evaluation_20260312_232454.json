@@ -1,0 +1,156 @@
+{
+  "generated_at": "2026-03-12T23:24:54",
+  "device": "cuda",
+  "manifest_path": "data\\processed\\manifests\\faceforensics_multimodal.json",
+  "results": {
+    "image": {
+      "model": "IMAGE MODEL",
+      "samples": 1600,
+      "positives": 1200,
+      "negatives": 400,
+      "auc": 0.59019375,
+      "pr_auc": 0.7738396064308827,
+      "eer": 0.42791666666666667,
+      "threshold_0_50": {
+        "threshold": 0.5,
+        "accuracy": 0.760625,
+        "precision": 0.7633784655061251,
+        "recall": 0.9866666666666667,
+        "f1": 0.8607778989458379,
+        "confusion_matrix": {
+          "tn": 33,
+          "fp": 367,
+          "fn": 16,
+          "tp": 1184
+        }
+      },
+      "best_f1_threshold": 0.4926234483718872,
+      "best_f1": {
+        "threshold": 0.4926234483718872,
+        "accuracy": 0.7625,
+        "precision": 0.762483994878361,
+        "recall": 0.9925,
+        "f1": 0.8624185372918175,
+        "confusion_matrix": {
+          "tn": 29,
+          "fp": 371,
+          "fn": 9,
+          "tp": 1191
+        }
+      }
+    },
+    "audio": {
+      "model": "AUDIO MODEL",
+      "samples": 4000,
+      "positives": 2000,
+      "negatives": 2000,
+      "auc": 0.92422,
+      "pr_auc": 0.9476722496679144,
+      "eer": 0.14349999999999996,
+      "threshold_0_50": {
+        "threshold": 0.5,
+        "accuracy": 0.8705,
+        "precision": 0.9959839357429718,
+        "recall": 0.744,
+        "f1": 0.8517458500286205,
+        "confusion_matrix": {
+          "tn": 1994,
+          "fp": 6,
+          "fn": 512,
+          "tp": 1488
+        }
+      },
+      "best_f1_threshold": 0.029700899496674538,
+      "best_f1": {
+        "threshold": 0.029700899496674538,
+        "accuracy": 0.88725,
+        "precision": 0.9474292316580012,
+        "recall": 0.82,
+        "f1": 0.8791208791208791,
+        "confusion_matrix": {
+          "tn": 1909,
+          "fp": 91,
+          "fn": 360,
+          "tp": 1640
+        }
+      },
+      "dataset_split": "eval"
+    },
+    "video": {
+      "model": "VIDEO MODEL",
+      "samples": 160,
+      "positives": 120,
+      "negatives": 40,
+      "auc": 0.6022916666666667,
+      "pr_auc": 0.7947820091862698,
+      "eer": 0.4041666666666667,
+      "threshold_0_50": {
+        "threshold": 0.5,
+        "accuracy": 0.75,
+        "precision": 0.75,
+        "recall": 1.0,
+        "f1": 0.8571428571428571,
+        "confusion_matrix": {
+          "tn": 0,
+          "fp": 40,
+          "fn": 0,
+          "tp": 120
+        }
+      },
+      "best_f1_threshold": 0.5540800094604492,
+      "best_f1": {
+        "threshold": 0.5540800094604492,
+        "accuracy": 0.7625,
+        "precision": 0.759493670886076,
+        "recall": 1.0,
+        "f1": 0.8633093525179857,
+        "confusion_matrix": {
+          "tn": 2,
+          "fp": 38,
+          "fn": 0,
+          "tp": 120
+        }
+      }
+    },
+    "fusion": {
+      "model": "FUSION MODEL",
+      "samples": 160,
+      "positives": 120,
+      "negatives": 40,
+      "auc": 0.61875,
+      "pr_auc": 0.8057322059227581,
+      "eer": 0.4,
+      "threshold_0_50": {
+        "threshold": 0.5,
+        "accuracy": 0.75,
+        "precision": 0.75,
+        "recall": 1.0,
+        "f1": 0.8571428571428571,
+        "confusion_matrix": {
+          "tn": 0,
+          "fp": 40,
+          "fn": 0,
+          "tp": 120
+        }
+      },
+      "best_f1_threshold": 0.5968546867370605,
+      "best_f1": {
+        "threshold": 0.5968546867370605,
+        "accuracy": 0.7875,
+        "precision": 0.7828947368421053,
+        "recall": 0.9916666666666667,
+        "f1": 0.875,
+        "confusion_matrix": {
+          "tn": 7,
+          "fp": 33,
+          "fn": 1,
+          "tp": 119
+        }
+      },
+      "active_modalities": [
+        "image",
+        "video"
+      ]
+    }
+  }
+}
